@@ -1,0 +1,51 @@
+## 一、遇到问题
+当一个 Echarts 图加载大数据量时，加载成功后，直接`右键单击`->`复制图片/图片另存为`可以正常复制图片；但是当鼠标悬浮展示tooltip之后，重复以上操作，无法复制正确的图片内容。
+
+## 二、解决方法
+### 2.1 关键属性
+[hoverLayerThreshold](https://echarts.apache.org/zh/option.html#hoverLayerThreshold)
+### 2.2 设置方式
+```
+option = {
+  xAxis: {
+    type: 'category',
+    boundaryGap: false,
+    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  },
+  yAxis: {
+    type: 'value'
+  },
+  hoverLayerThreshold:Infinity,
+  series: [
+    {
+      name: 'Email',
+      type: 'line',
+      stack: 'Total',
+      data: [120, 132, 101, 134, 90, 230, 210]
+    },
+  ]
+};
+```
+## 三、解决过程
+### 3.0 检查dom
+发现自动添加了一层 Canvas ，zr_100000，在最上边，右键复制图片操作全部作用于这个画布，所以无法复制正确内容。
+![image.png](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1907685b899a401ca2ac61ec61087af1~tplv-k3u1fbpfcp-jj-mark:0:0:0:0:q75.image#?w=1987&h=463&s=162218&e=png&b=2d2d2d)
+### 3.1 关键字
+- data-zr-dom-id
+- zr_100000
+
+### 3.2 尝试搜索
+1. ~~Bing 和 Google 都搜索不到有效内容~~
+2. ~~5.4.5 版本源码搜索不到有效内容~~
+3. [Github 仓库搜索](https://github.com/apache/echarts)，在Issues 中才有一个相关的介绍 [[Perf] High CPU overload and user interaction freezed in SVG map (canvas & svg) · Issue #14875 · apache/echarts (github.com)](https://github.com/apache/echarts/issues/14875)
+```
+[@plainheart](https://github.com/plainheart)
+
+`zr_100000` is a special `zlevel` that provided to the hover layer.
+SVG rendering mode is not good at animation performance because each frame it needs to find out 
+which DOM needs to be updated and manipulate the attributes of DOM(just like what virtual dom does). 
+Even if we did lots of optimizations, it's still not as fast as Canvas. Especially in a case like this map which has lots of elements. 
+The advance of SVG rendering mode is reducing the memory usage on mobile devices.
+```
+4. 然后在[官方文档](https://echarts.apache.org/zh/option.html)中搜索 `hover` 关键字，找到相关属性
+
